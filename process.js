@@ -37,7 +37,7 @@ function countFileLines (fileName, sourceDir, destDir) {
         console.error('Wrong source directory path!');
         process.exit(1);
       }
-    
+
       try {
         pathToDestinationDir = path.resolve(process.argv[3]);
       } catch (err) {
@@ -47,12 +47,15 @@ function countFileLines (fileName, sourceDir, destDir) {
           console.warn('Create dir' +process.argv[3])
           fs.mkdirSync(path.resolve(process.argv[3]))
         }
-         
+
     const inputFiles = fs.readdirSync(pathToSourceDir);
     const promise = [];
     for (const file of inputFiles) {
         const res = countFileLines(file, pathToSourceDir, pathToDestinationDir);
         promise.push(res)
     }
-    await Promise.all(promise);
+      await Promise.all(promise).then(
+	          value => console.log("Total number of processed files:" + value.length),
+	          err => console.error(err)
+	        );
 })();
