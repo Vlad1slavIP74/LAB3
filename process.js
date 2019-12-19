@@ -2,7 +2,7 @@
 
 const fs = require('fs')
 const path = require('path');
-
+const {parse} = require('./helpers')
 function countFileLines (fileName, sourceDir, destDir) {
     const filePath = `${sourceDir}/${fileName}`
     return new Promise((resolve, reject) => {
@@ -18,7 +18,8 @@ function countFileLines (fileName, sourceDir, destDir) {
         const extension = path.extname(fileName);
         const newFileName = path.basename(fileName,extension);
         const pathToOutputFile = `${destDir}/${newFileName}.res`;
-        fs.writeFile(pathToOutputFile, lineCount, (err) => {
+        const numberToWord = parse(lineCount);
+        fs.writeFile(pathToOutputFile, numberToWord, (err) => {
           if (err) reject(err);
           resolve();
         });
@@ -26,7 +27,6 @@ function countFileLines (fileName, sourceDir, destDir) {
       }).on("error", reject);
     });
   };
-
 
 (async function main(){
     let pathToSourceDir;
