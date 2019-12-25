@@ -9,7 +9,13 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"bufio"
 	"bytes"
+	"io"
+)
+
+const (
+	chunksize int = 10
 )
 
 func main() {
@@ -37,11 +43,30 @@ func main() {
 	var wg sync.WaitGroup
 
 	countFileLines := func(fileName, sourceDir, destDir string) {
-		data, err := ioutil.ReadFile(filepath.Join(sourceDir, fileName))
+		data, err := os.Open(filepath.Join(sourceDir,fileName))
+
 		if err != nil {
 			log.Fatal(err)
 		}
-		lineCount := len(bytes.Split(data, []byte{'\n'}))
+		defer data.Close()
+
+		reader := bufio.NewReader(data)
+		buffer := bytes.NewBuffer(make([]byte, 0))
+		part := make([]byte, chunksize)
+		var count int
+		for {
+		if count, err = reader.Read(part); err != nil {
+			break
+		}
+		buffer.Write(part[:count])
+	}
+
+	if err != io.EOF {
+		log.Fatal("Error Reading ", fileName, ": ", err)
+	} else {
+		err = nil
+	}
+		lineCount := buffer.Len()
 
 		newFileName := strings.TrimSuffix(fileName, filepath.Ext(fileName)) + ".res"
 
