@@ -1,16 +1,15 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"sync"
-	"bufio"
-	"bytes"
+	// "bytes"
 	"io"
 )
 
@@ -29,8 +28,7 @@ func main() {
 	}
 
 	if _, err := os.Stat(destDir); os.IsNotExist(err) {
-		fmt.Println(destDir)
-		if err := os.Mkdir(destDir, 0644); err != nil {
+		if err := os.Mkdir(destDir, 0777); err != nil {
 			log.Fatal(err)
 		}
 	}
@@ -43,38 +41,42 @@ func main() {
 	var wg sync.WaitGroup
 
 	countFileLines := func(fileName, sourceDir, destDir string) {
-		data, err := os.Open(filepath.Join(sourceDir,fileName))
-
+		defer wg.Done()
+		data, err := os.Open(filepath.Join(sourceDir, fileName))
 		if err != nil {
 			log.Fatal(err)
 		}
+
 		defer data.Close()
+		var sentence string
 
 		reader := bufio.NewReader(data)
-		buffer := bytes.NewBuffer(make([]byte, 0))
-		part := make([]byte, chunksize)
+		buffer := make([]byte, chunksize)
 		var count int
 		for {
-		if count, err = reader.Read(part); err != nil {
-			break
+			if count, err = reader.Read(buffer); err != nil {
+				break
+			}
+			sentence += string(buffer[:count])
 		}
-		buffer.Write(part[:count])
-	}
 
-	if err != io.EOF {
-		log.Fatal("Error Reading ", fileName, ": ", err)
-	} else {
-		err = nil
-	}
-		lineCount := buffer.Len()
+		if err != io.EOF {
+			log.Fatal("Error Reading ", fileName, ": ", err)
+		} else {
+			err = nil
+		}
 
 		newFileName := strings.TrimSuffix(fileName, filepath.Ext(fileName)) + ".res"
+		f, err := os.Create(filepath.Join(destDir, newFileName))
 
-		err = ioutil.WriteFile(filepath.Join(destDir, newFileName), []byte(strconv.Itoa(lineCount)), 0644)
 		if err != nil {
+			log.Fatal("create file ", err)
+		}
+
+		defer f.Close()
+		if _, err = f.WriteString(sentence); err != nil {
 			log.Fatal(err)
 		}
-		wg.Done()
 	}
 
 	for _, file := range files {
